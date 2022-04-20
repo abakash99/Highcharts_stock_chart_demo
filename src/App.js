@@ -5,12 +5,16 @@ import HighchartsStock from "highcharts/modules/stock";
 import HighchartsReact from "highcharts-react-official";
 import Highcharts from "highcharts/highstock";
 import axios from "axios";
-
+import { Button } from "@material-ui/core";
 import { AdapterMoment } from "@mui/x-date-pickers/AdapterMoment";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { DatePicker } from "@mui/x-date-pickers";
 import TextField from "@mui/material/TextField";
 import moment from "moment";
+import HC_more from "highcharts/highcharts-more"; //module for bubble chart
+HC_more(Highcharts); //init module
+
+Highcharts.Chart.prototype.showResetZoom = function () {}; // to hide the default zoom button for buble chart
 
 HighchartsStock(Highcharts);
 
@@ -889,6 +893,156 @@ export const App = () => {
     to: null,
   });
 
+  // bubble chart options
+
+  const chartComponent = useRef(null);
+  const [isZoomed, setIsZoomed] = useState(false);
+
+  const bubbleChartOptions = {
+    chart: {
+      type: "bubble",
+      plotBorderWidth: 1,
+      zoomType: "xy",
+      events: {
+        selection: function (e) {
+          if (e.resetSelection) {
+            setIsZoomed(false);
+          } else {
+            setIsZoomed(true);
+          }
+        },
+      },
+    },
+
+    legend: {
+      enabled: false,
+    },
+
+    title: {
+      text: "Sugar and fat intake per country",
+    },
+
+    subtitle: {
+      text: 'Source: <a href="http://www.euromonitor.com/">Euromonitor</a> and <a href="https://data.oecd.org/">OECD</a>',
+    },
+
+    accessibility: {
+      point: {
+        valueDescriptionFormat:
+          "{index}. {point.name}, fat: {point.x}g, sugar: {point.y}g, obesity: {point.z}%.",
+      },
+    },
+
+    xAxis: {
+      gridLineWidth: 1,
+      title: {
+        text: "Daily fat intake",
+      },
+      labels: {
+        format: "{value} gr",
+      },
+      plotLines: [
+        {
+          color: "black",
+          dashStyle: "dot",
+          width: 2,
+          value: 65,
+          label: {
+            rotation: 0,
+            y: 15,
+            style: {
+              fontStyle: "italic",
+            },
+            text: "Safe fat intake 65g/day",
+          },
+          zIndex: 3,
+        },
+      ],
+      accessibility: {
+        rangeDescription: "Range: 60 to 100 grams.",
+      },
+    },
+
+    yAxis: {
+      startOnTick: false,
+      endOnTick: false,
+      title: {
+        text: "Daily sugar intake",
+      },
+      labels: {
+        format: "{value} gr",
+      },
+      maxPadding: 0.2,
+      plotLines: [
+        {
+          color: "black",
+          dashStyle: "dot",
+          width: 2,
+          value: 50,
+          label: {
+            align: "right",
+            style: {
+              fontStyle: "italic",
+            },
+            text: "Safe sugar intake 50g/day",
+            x: -10,
+          },
+          zIndex: 3,
+        },
+      ],
+      accessibility: {
+        rangeDescription: "Range: 0 to 160 grams.",
+      },
+    },
+
+    tooltip: {
+      useHTML: true,
+      headerFormat: "<table>",
+      pointFormat:
+        '<tr><th colspan="2"><h3>{point.country}</h3></th></tr>' +
+        "<tr><th>Fat intake:</th><td>{point.x}g</td></tr>" +
+        "<tr><th>Sugar intake:</th><td>{point.y}g</td></tr>" +
+        "<tr><th>Obesity (adults):</th><td>{point.z}%</td></tr>",
+      footerFormat: "</table>",
+      followPointer: true,
+    },
+
+    plotOptions: {
+      series: {
+        dataLabels: {
+          enabled: true,
+          format: "{point.name}",
+        },
+      },
+    },
+
+    series: [
+      {
+        data: [
+          { x: 95, y: 95, z: 13.8, name: "BE", country: "Belgium" },
+          { x: 86.5, y: 102.9, z: 14.7, name: "DE", country: "Germany" },
+          { x: 80.8, y: 91.5, z: 15.8, name: "FI", country: "Finland" },
+          { x: 80.4, y: 102.5, z: 12, name: "NL", country: "Netherlands" },
+          { x: 80.3, y: 86.1, z: 11.8, name: "SE", country: "Sweden" },
+          { x: 78.4, y: 70.1, z: 16.6, name: "ES", country: "Spain" },
+          { x: 74.2, y: 68.5, z: 14.5, name: "FR", country: "France" },
+          { x: 73.5, y: 83.1, z: 10, name: "NO", country: "Norway" },
+          { x: 71, y: 93.2, z: 24.7, name: "UK", country: "United Kingdom" },
+          { x: 69.2, y: 57.6, z: 10.4, name: "IT", country: "Italy" },
+          { x: 68.6, y: 20, z: 16, name: "RU", country: "Russia" },
+          { x: 65.5, y: 126.4, z: 35.3, name: "US", country: "United States" },
+          { x: 65.4, y: 50.8, z: 28.5, name: "HU", country: "Hungary" },
+          { x: 63.4, y: 51.8, z: 15.4, name: "PT", country: "Portugal" },
+          { x: 64, y: 82.9, z: 31.3, name: "NZ", country: "New Zealand" },
+        ],
+      },
+    ],
+  };
+  const resetZoom = () => {
+    if (chartComponent && chartComponent.current) {
+      chartComponent.current.chart.zoomOut();
+    }
+  };
   return (
     <div className="App">
       {/* sankey chart */}
@@ -1014,6 +1168,22 @@ export const App = () => {
           highcharts={Highcharts}
           constructorType={"stockChart"}
           options={columnOptions}
+        />
+      </div>
+      <div style={{ margin: "10px 0", border: "1px solid red" }}>
+        {isZoomed && (
+          <Button
+            // style={{ position: "absolute", top: 50, right: 10 }}
+            onClick={resetZoom}
+            color="primary"
+          >
+            Reset zoom custom
+          </Button>
+        )}
+        <HighchartsReact
+          ref={chartComponent}
+          highcharts={Highcharts}
+          options={bubbleChartOptions}
         />
       </div>
     </div>
